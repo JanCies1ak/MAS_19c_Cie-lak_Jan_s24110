@@ -1,0 +1,1 @@
+Before building change connection string to your database.

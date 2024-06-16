@@ -1,0 +1,31 @@
+﻿@page "/departures"
+@inject HttpClient httpClient
+
+<h3>Departures</h3>
+<div>
+    <!--<a class="btn btn-info" href="/departures/buy">Add</a>-->
+    <DepartureList Departures="DepartureList"/>
+</div>
+
+@code {
+    private List<DepartureWithSeatsDto> DepartureList = new();
+    protected async override Task OnInitializedAsync()
+    {
+        await GetMovies();
+    }
+
+    private async Task GetMovies()
+    {
+        var responseHTTP = await httpClient.GetAsync("https://localhost:44329/api/departures");
+        if (responseHTTP.IsSuccessStatusCode)
+        {
+            var responseString = await responseHTTP.Content.ReadAsStringAsync();
+            var deserializedObject = JsonConvert.DeserializeObject<List<DepartureWithSeatsDto>>(responseString);
+            DepartureList = deserializedObject == null ? new() : deserializedObject;
+        }
+        else
+        {
+            //error
+        }
+    }
+}

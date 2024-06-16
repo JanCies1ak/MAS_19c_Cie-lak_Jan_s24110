@@ -1,0 +1,120 @@
+﻿@inject HttpClient httpClient
+@inject IJSRuntime JS
+@if (Departure.StopsNames.Any())
+{
+    <tr class="departure-list-element">
+        <td class="end-stop-names">
+            @Departure.StopsNames[0] - @Departure.StopsNames[Departure.StopsNames.Count - 1]
+        </td>
+        <td class="right" width="100px">
+            @TimeOnly.FromDateTime(@Departure.StartTime)
+        </td>
+        <td class="right" width="100px">
+            @DateOnly.FromDateTime(@Departure.StartTime)
+        </td>
+        <td class="right" width="100px">
+            <div class="header-sign">
+                <div class="dropdown">
+                    <button @onclick="Show" class="button-md" type="button">
+                        <i data-feather="user"></i>
+                        <span>Seats</span>
+                    </button>
+                    <ul class="dropdown-list @(isActive ? "is-active" : "")">
+                        @foreach (var seat in SeatList)
+                        {
+                            @if (Seats[seat.Index].Available)
+                            {
+                                <li class="dropdown-item">
+                                    <button class="dropdown-link" @onclick="() => Buy(seat.Index)">
+                                        <p class="text-md">@seat.Text</p>
+                                    </button>
+                                </li>
+                            }
+                            else
+                            {
+                                <li class="dropdown-item">
+                                    <button class="dropdown-link" @onclick="Hide">
+                                        <p class="text-md">@seat.Text</p>
+                                    </button>
+                                </li>
+                            }
+                        }
+                    </ul>
+                </div>
+            </div>
+        </td>
+    </tr>
+}
+
+@code {
+    [Parameter] public DepartureWithSeatsDto Departure { get; set; } = null!;
+
+    private List<SeatDto> Seats = new();
+
+    private List<SeatListElement> SeatList = new();
+
+    private string departureUrl = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        if (Departure is null)
+        {
+            return;
+        }
+        departureUrl = $"departures/{Departure.Id}";
+
+        if (Departure.Seats == null)
+            return;
+
+        Seats = Departure.Seats;
+
+        for (var i = 0; i < Departure.Seats.Count; ++i)
+        {
+            var seat = Departure.Seats[i];
+            SeatList.Add(new()
+                {
+                    Index = i,
+                    Text = $"{seat.CarriagePosition}-{seat.Number}"
+                });
+        }
+    }
+
+    public class SeatListElement
+    {
+        public int Index { get; set; }
+        public string Text { get; set; } = null!;
+    }
+
+    private bool isActive = false;
+
+    private void Show()
+    {
+        isActive = !isActive;
+    }
+
+    private void Hide()
+    {
+        isActive = false;
+    }
+
+    private async void Buy(int index)
+    {
+        isActive = false;
+        if (!Seats[index].Available)
+            return;
+
+        var ticket = new TicketDto
+            {
+                Seat = Seats[index].Number,
+                PassengerId = 1,
+                DepartureId = Departure.Id,
+                CarriageId = Seats[index].CarriagePosition,
+            };
+        var json = JsonConvert.SerializeObject(ticket);
+
+        var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+        var response = await httpClient.PutAsync($"https://localhost:44329/api/departures/{Departure.Id}/tickets/buy", content);
+        await JS.InvokeVoidAsync("alert", $"You bought ticket: [{Departure.StopsNames[0]} - {Departure.StopsNames[Departure.StopsNames.Count - 1]} {ticket.Seat}, {ticket.DepartureId}, {ticket.CarriageId}]");
+    }
+}

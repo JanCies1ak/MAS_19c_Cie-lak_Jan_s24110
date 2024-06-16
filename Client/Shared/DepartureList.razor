@@ -1,0 +1,24 @@
+﻿@using System.Text
+
+<div class="departure-container">
+    <table border="1" width="100%" class="departure-list">
+        <tbody>
+            <GenericList List="Departures">
+                <ElementTemplate Context="departure">
+                    <IndividualDeparture Departure="departure" />
+                </ElementTemplate>
+            </GenericList>
+        </tbody>
+    </table>
+</div>
+
+
+@code {
+    [Parameter]
+    public List<DepartureWithSeatsDto> Departures { get; set; } = new();
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+    }
+}
